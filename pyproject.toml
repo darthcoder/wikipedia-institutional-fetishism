@@ -1,0 +1,16 @@
+[project]
+name = "wif"
+version = "0.1.0"
+description = "Wikipedia Institutional Fetishism — Interactive exploration of ghost categories"
+requires-python = ">=3.10"
+dependencies = [
+    "python-fasthtml>=0.4",
+    "uvicorn>=0.29",
+]
+
+[project.scripts]
+serve = "app:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

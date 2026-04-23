@@ -30,7 +30,40 @@ The analysis is a **three-stage pipeline** that progressively reveals the contra
 
 Each stage builds on outputs from previous stages. **Pipeline is idempotent** — re-running stages only recomputes that stage (stages 1 and 3 are fast; stage 2 uses cached API results when available).
 
-## Setup
+## Running the Web App (v1)
+
+Minimal FastHTML web app for interactive exploration of ghost category connections. Demonstrates the collision finding: when two ghost terms share articles, they appear in structurally separate narrative sections.
+
+**Install dependencies:**
+```bash
+uv sync
+```
+
+**Start the app:**
+```bash
+uv run uvicorn app:app --reload --port 8000
+```
+
+Open http://localhost:8000 in your browser.
+
+**How it works:**
+1. Enter two terms (e.g., "Lenin" and "Bolshevism")
+2. App queries `output/ghost_mentions.jsonl` to find articles mentioning both terms simultaneously
+3. Character distance between closest mentions is calculated and classified:
+   - **Directly adjacent** (<300 chars) — in close proximity
+   - **Same section** (<1000 chars) — same article section
+   - **Structurally separate** (>1000 chars) — different narrative contexts with no causal link
+4. Context windows (150 chars) shown for each mention
+5. Click ghost term chips to pre-fill the search form
+
+**Key test (the thesis finding):**
+Search "Lenin" + "Assassination of Archduke Franz Ferdinand". Result: **Sergey Sazonov** article with distance ~2,684 chars (structurally separate). This demonstrates the core insight: the two central WWI narratives barely touch, connected only through a man who happened to be present at both moments.
+
+## Running the Analysis Pipeline
+
+To regenerate the analysis outputs:
+
+### Setup
 
 No separate dependencies — uses the parent project's `uv` environment:
 
