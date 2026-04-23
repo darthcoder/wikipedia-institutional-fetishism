@@ -62,7 +62,15 @@ def main() -> None:
         type=Path,
         default=Path(__file__).parent.parent / "output",
     )
+    parser.add_argument(
+        "--terms",
+        nargs="+",
+        metavar="TERM",
+        help="Override ghost terms (space-separated; quote multi-word terms)",
+    )
     args = parser.parse_args()
+
+    ghost_terms = args.terms if args.terms else GHOST_TERMS
 
     if not args.corpus.exists():
         raise FileNotFoundError(
@@ -75,7 +83,7 @@ def main() -> None:
     summary_path = args.output_dir / "ghost_summary.json"
 
     print(f"Corpus: {args.corpus}")
-    print(f"Ghost terms ({len(GHOST_TERMS)}): {', '.join(GHOST_TERMS)}")
+    print(f"Ghost terms ({len(ghost_terms)}): {', '.join(ghost_terms)}")
     print()
 
     # Load corpus
@@ -97,7 +105,7 @@ def main() -> None:
             pageid = article.get("pageid")
             title = article.get("title", "")
 
-            for term in GHOST_TERMS:
+            for term in ghost_terms:
                 hits = find_mentions(text, term)
                 if not hits:
                     continue
@@ -122,7 +130,7 @@ def main() -> None:
     print(f"Total (term, article) pairs: {records_written}\n")
     print(f"{'Ghost term':<45} {'Articles':>8} {'Mentions':>9}")
     print("-" * 65)
-    for term in GHOST_TERMS:
+    for term in ghost_terms:
         s = summary.get(term, {"article_count": 0, "total_mentions": 0})
         print(f"{term:<45} {s['article_count']:>8} {s['total_mentions']:>9}")
 
