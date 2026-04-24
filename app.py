@@ -359,8 +359,9 @@ def homepage():
                 ),
                 cls="form-group",
             ),
-            Button("Search", type="submit", hx_post="/search", hx_target="#results"),
+            Button("Search", type="submit"),
             hx_post="/search",
+            hx_target="#results",
         ),
         Div(
             H3("Ghost Terms (indexed)"),
