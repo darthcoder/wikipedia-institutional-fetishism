@@ -362,10 +362,7 @@ def homepage():
                     Span(
                         term.title(),
                         cls="chip",
-                        onclick=f"""
-                            document.getElementById('term1').value = '{term.replace("'", "\\'")}';
-                            document.getElementById('term1').focus();
-                        """,
+                        onclick=f"""document.getElementById('term1').value = "{term}"; document.getElementById('term1').focus();""",
                     )
                     for term in ghost_terms
                 ],
