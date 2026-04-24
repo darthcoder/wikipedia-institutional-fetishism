@@ -1,0 +1,19 @@
+{
+  "name": "Wikipedia Institutional Fetishism",
+  "description": "Interactive exploration of Wikipedia's empty ghost categories",
+  "buildpacks": [
+    {
+      "url": "https://github.com/digitalocean/buildpacks-python"
+    }
+  ],
+  "env": {
+    "PYTHONUNBUFFERED": {
+      "description": "Enable unbuffered Python output",
+      "value": "1"
+    },
+    "UV_SYSTEM_PYTHON": {
+      "description": "Use system Python with uv",
+      "value": "1"
+    }
+  }
+}
