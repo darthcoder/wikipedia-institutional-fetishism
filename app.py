@@ -115,6 +115,9 @@ def find_shared_articles(term1: str, term2: str) -> list[dict]:
     return results
 
 
+# Load data at import time so uvicorn picks it up
+load_ghost_mentions()
+
 # ============================================================================
 # FastHTML App
 # ============================================================================
@@ -449,5 +452,4 @@ def main():
 
 
 if __name__ == "__main__":
-    load_ghost_mentions()
     main()
