@@ -21,12 +21,38 @@ from pathlib import Path
 # These concepts are structurally invisible in Wikipedia's category hierarchy
 # despite being central to understanding WWI.
 GHOST_TERMS: list[str] = [
+    # Original ghost terms
     "Assassination of Archduke Franz Ferdinand",
     "Western Front",
     "Bolshevism",
     "Bolshevik",
     "Lenin",
     "Revolution",
+    # People
+    "Rosa Luxemburg",
+    "Enver Pasha",
+    "Talaat Pasha",
+    "Trotsky",
+    "Rasputin",
+    "Mustafa Kemal",
+    # Organizations / Movements
+    "Young Turks",
+    "Spartacist",
+    "Mensheviks",
+    "Pan-Slavism",
+    "Zionism",
+    # Theaters / Places
+    "Persia",
+    "Gallipoli",
+    "Mesopotamia",
+    "Caucasus",
+    "Salonika",
+    # Events / Concepts
+    "July Crisis",
+    "Armenian",
+    "Brest-Litovsk",
+    "Schlieffen",
+    "War guilt",
 ]
 
 CONTEXT_WINDOW = 150  # chars of context around each mention

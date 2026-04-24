@@ -21,6 +21,8 @@ CORPUS_PATH = Path(__file__).parent / "data" / "wwi_extended.jsonl"
 
 # Index: {term_lower: {pageid: {"title": str, "mentions": [...]}}}
 ghost_index: dict[str, dict[int, dict]] = defaultdict(lambda: defaultdict(dict))
+# Original casing: {term_lower: original_term}
+ghost_term_display: dict[str, str] = {}
 
 
 def load_ghost_mentions() -> None:
@@ -33,6 +35,8 @@ def load_ghost_mentions() -> None:
         for line in f:
             record = json.loads(line.strip())
             term = record["ghost_term"].lower()
+            if term not in ghost_term_display:
+                ghost_term_display[term] = record["ghost_term"]
             pageid = record["pageid"]
             title = record["title"]
             mentions = record["positions"]
@@ -231,9 +235,29 @@ _CSS = """
         font-size: 0.9rem;
         font-weight: 600;
         color: #666;
-        margin-bottom: 0.8rem;
+        margin-bottom: 0.6rem;
         text-transform: uppercase;
         letter-spacing: 0.05em;
+    }
+    .ghost-terms p {
+        font-size: 0.85rem;
+        color: #888;
+        margin-bottom: 1rem;
+        line-height: 1.5;
+    }
+    .chip-group {
+        margin-bottom: 1rem;
+    }
+    .chip-group:last-child {
+        margin-bottom: 0;
+    }
+    .chip-group-label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #999;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        margin-bottom: 0.4rem;
     }
     #results {
         min-height: 0;
@@ -310,6 +334,25 @@ _CSS = """
     }
 """
 
+# Grouped display order for indexed terms — mirrors ghost_hunt.py
+GHOST_TERM_GROUPS: list[tuple[str, list[str]]] = [
+    ("People", [
+        "Rosa Luxemburg", "Enver Pasha", "Talaat Pasha",
+        "Trotsky", "Rasputin", "Mustafa Kemal",
+    ]),
+    ("Organizations & Movements", [
+        "Young Turks", "Spartacist", "Mensheviks", "Pan-Slavism", "Zionism",
+    ]),
+    ("War Theaters", [
+        "Persia", "Gallipoli", "Mesopotamia", "Caucasus", "Salonika",
+    ]),
+    ("Events & Concepts", [
+        "Assassination of Archduke Franz Ferdinand", "Western Front",
+        "Bolshevism", "Bolshevik", "Lenin", "Revolution",
+        "July Crisis", "Armenian", "Brest-Litovsk", "Schlieffen", "War guilt",
+    ]),
+]
+
 app, rt = fast_app(
     title="WIF — Ghost Categories Explorer",
     pico=False,
@@ -320,8 +363,6 @@ app, rt = fast_app(
 @rt("/")
 def homepage():
     """Homepage with search form and ghost term chips."""
-    ghost_terms = sorted(list(ghost_index.keys()))
-
     return Main(
         H1(
             "Ghost Categories Explorer",
@@ -329,10 +370,11 @@ def homepage():
         ),
         Div(
             P(
-                "Wikipedia has official categories for central WWI concepts that return "
-                "<strong>zero members</strong> from the API. Yet these concepts are "
-                "widespread in the corpus. Enter two terms to see which articles mention "
-                "both simultaneously — and measure how structurally separate they appear."
+                "Wikipedia has official categories for central WWI concepts that return ",
+                Strong("zero members"),
+                " from the API. Yet these concepts are widespread in the corpus. "
+                "Enter two terms to see which articles mention both simultaneously "
+                "— and measure how structurally separate they appear.",
             ),
             cls="intro",
         ),
@@ -365,20 +407,34 @@ def homepage():
             hx_swap="innerHTML",
         ),
         Div(
-            H3("Ghost Terms (indexed)"),
-            Div(
-                *[
-                    Span(
-                        term.title(),
-                        cls="chip",
-                        onclick=f"""document.getElementById('term1').value = "{term}"; document.getElementById('term1').focus();""",
-                    )
-                    for term in ghost_terms
-                ],
-                cls="chips",
+            H3("Indexed Ghost Terms"),
+            P(
+                f"This index covers {len(ghost_index)} terms — key people, places, movements, and events "
+                "that are structurally invisible in Wikipedia's WWI category hierarchy. "
+                "Only terms listed here can be searched. "
+                "If you enter a term not in this list, you will be told it is not yet indexed."
             ),
+            *[
+                Div(
+                    Div(group_label, cls="chip-group-label"),
+                    Div(
+                        *[
+                            Span(
+                                term,
+                                cls="chip",
+                                onclick=f"""document.getElementById('term1').value = "{term}"; document.getElementById('term1').focus();""",
+                            )
+                            for term in terms
+                            if term.lower() in ghost_index
+                        ],
+                        cls="chips",
+                    ),
+                    cls="chip-group",
+                )
+                for group_label, terms in GHOST_TERM_GROUPS
+            ],
             cls="ghost-terms",
-        ) if ghost_terms else None,
+        ) if ghost_index else None,
         Div(id="results"),
         Footer(
             P(
@@ -408,11 +464,22 @@ def search(term1: str = "", term2: str = ""):
             cls="error",
         )
 
+    t1_indexed = term1.lower() in ghost_index
+    t2_indexed = term2.lower() in ghost_index
+
+    if not t1_indexed or not t2_indexed:
+        missing = [t for t, ok in [(term1, t1_indexed), (term2, t2_indexed)] if not ok]
+        return Div(
+            *[P(Strong(t), " is not in the ghost index — try one of the terms above.") for t in missing],
+            cls="no-results",
+        )
+
     results = find_shared_articles(term1, term2)
 
     if not results:
         return Div(
-            "No articles mention both ", Strong(term1), " and ", Strong(term2), " simultaneously.",
+            P(Strong(term1), " and ", Strong(term2), " are both indexed but never appear in the same article."),
+            P("This is itself a finding: these concepts are structurally separate in the corpus.", style="margin-top:0.5rem;font-size:0.9rem;color:#888;"),
             cls="no-results",
         )
 
