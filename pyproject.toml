@@ -2,7 +2,6 @@
 name = "wif"
 version = "0.1.0"
 description = "Wikipedia Institutional Fetishism — Interactive exploration of ghost categories"
-requires-python = ">=3.9"
 dependencies = [
     "python-fasthtml>=0.4",
     "uvicorn>=0.29",
