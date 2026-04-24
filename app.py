@@ -381,7 +381,7 @@ def homepage():
     )
 
 
-@rt.post("/search")
+@rt("/search", methods=["POST"])
 def search(term1: str = "", term2: str = ""):
     """Search for shared articles between two terms."""
     term1 = term1.strip()
