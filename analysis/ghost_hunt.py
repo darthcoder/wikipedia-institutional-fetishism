@@ -4,7 +4,7 @@ Wikipedia has official categories (e.g. "Bolshevism", "Western Front") that retu
 0 members from the category API. This script reverse-hunts: searching article *text*
 for these ghost terms to show the substance is there but structurally invisible.
 
-Input:  corpus JSONL  (default: ../../data/wwi_extended.jsonl)
+Input:  corpus JSONL  (default: ./data/wwi_extended.jsonl)
 Output: output/ghost_mentions.jsonl  — one record per (term, article) pair
         output/ghost_summary.json    — {term: {article_count, total_mentions}}
 """
@@ -55,7 +55,7 @@ def main() -> None:
         "--corpus",
         type=Path,
         default=Path(__file__).parent.parent / "data" / "wwi_extended.jsonl",
-        help="Corpus JSONL (default: ../../data/wwi_extended.jsonl)",
+        help="Corpus JSONL (default: ./data/wwi_extended.jsonl)",
     )
     parser.add_argument(
         "--output-dir",

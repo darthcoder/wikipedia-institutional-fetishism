@@ -1,5 +1,7 @@
 output/
-data/
+data/*
+!data/wwi_extended.jsonl
+!data/88_categories.json
 __pycache__/
 *.py[oc]
 .venv/

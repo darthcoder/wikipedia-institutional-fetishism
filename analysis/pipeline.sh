@@ -3,14 +3,14 @@
 # Run from project root: bash analysis/pipeline.sh
 #
 # Requires: uv (from parent project), requests library
-# Data:     ../../data/wwi_extended.jsonl (354 articles)
+# Data:     ./data/wwi_extended.jsonl
 
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-CORPUS="${1:-../../data/wwi_extended.jsonl}"
+CORPUS="${1:-./data/wwi_extended.jsonl}"
 
 echo "========================================"
 echo "Wikipedia Institutional Fetishism"

@@ -7,7 +7,7 @@ Build once, query fast. Two query modes:
 
 Usage:
     # Build index (run once; auto-builds on first query too)
-    uv run python analysis/corpus_index.py build --corpus ../../data/wwi_extended.jsonl
+    uv run python analysis/corpus_index.py build --corpus ./data/wwi_extended.jsonl
 
     # Direct lookup
     uv run python analysis/corpus_index.py query Sazonov
@@ -32,7 +32,7 @@ from pathlib import Path
 # Config
 # ---------------------------------------------------------------------------
 
-DEFAULT_CORPUS = Path(__file__).parent.parent.parent.parent / "data" / "wwi_extended.jsonl"
+DEFAULT_CORPUS = Path(__file__).parent.parent / "data" / "wwi_extended.jsonl"
 DEFAULT_INDEX = Path(__file__).parent.parent / "output" / "corpus_index.pkl"
 DEFAULT_RADIUS = 50
 DEFAULT_TOP = 30
