@@ -362,6 +362,7 @@ def homepage():
             Button("Search", type="submit"),
             hx_post="/search",
             hx_target="#results",
+            hx_swap="innerHTML",
         ),
         Div(
             H3("Ghost Terms (indexed)"),
