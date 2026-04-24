@@ -1,0 +1,26 @@
+{
+  "Assassination of Archduke Franz Ferdinand": {
+    "article_count": 87,
+    "total_mentions": 177
+  },
+  "Western Front": {
+    "article_count": 183,
+    "total_mentions": 639
+  },
+  "Revolution": {
+    "article_count": 850,
+    "total_mentions": 4364
+  },
+  "Lenin": {
+    "article_count": 160,
+    "total_mentions": 754
+  },
+  "Bolshevism": {
+    "article_count": 74,
+    "total_mentions": 123
+  },
+  "Bolshevik": {
+    "article_count": 295,
+    "total_mentions": 1837
+  }
+}

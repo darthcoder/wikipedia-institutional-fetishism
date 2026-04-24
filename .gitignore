@@ -1,4 +1,6 @@
-output/
+output/*
+!output/ghost_mentions.jsonl
+!output/ghost_summary.json
 data/*
 !data/wwi_extended.jsonl
 !data/88_categories.json

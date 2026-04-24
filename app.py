@@ -406,7 +406,7 @@ def search(term1: str = "", term2: str = ""):
 
     if not results:
         return Div(
-            f"No articles mention both <strong>{term1}</strong> and <strong>{term2}</strong> simultaneously.",
+            "No articles mention both ", Strong(term1), " and ", Strong(term2), " simultaneously.",
             cls="no-results",
         )
 
