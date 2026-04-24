@@ -21,13 +21,21 @@ bash analysis/pipeline.sh
 # Generates outputs in output/ directory
 ```
 
+**Test a single analysis stage** (after generating outputs above):
+```bash
+# Test web app with existing data
+uv run python -c "from app import ghost_index; print(f'Loaded {len(ghost_index)} terms')"
+```
+
 For detailed information, see sections below.
 
 ## Project Overview
 
 **The Fetish of Structure** — an empirical analysis of Wikipedia's category hierarchy as institutional fetishism. The central finding: 51 of 88 searched categories return zero members from the Wikipedia API, yet reverse-hunting through article text finds those concepts everywhere. The hierarchy performs documentary completeness while making structural causality invisible.
 
-This is a sub-project of `ner-paper` (parent directory: `../..`). It lives in `ignore/` because it shares the parent's corpus and Python environment but is a separate line of inquiry.
+This is a sub-project of `ner-paper` (parent directory: `../..`). It lives here because it shares the parent's corpus and Python environment but is a separate line of inquiry.
+
+**Dependency note**: This project uses the parent project's `uv` environment. If running standalone, `uv sync` will install dependencies locally. The corpus file (`data/wwi_extended.jsonl`) must be available — it is typically symlinked from the parent project or provided separately (see "Data Files" section).
 
 ## Architecture & Data Flow
 
@@ -106,6 +114,41 @@ The FastHTML app is a single-file implementation:
 
 To modify the app: edit `app.py` directly, then restart uvicorn with `--reload` flag for hot reloading.
 
+### Reading the Analysis Scripts
+
+All analysis scripts share a common structure:
+
+1. **Imports & constants** (top of file) — defines input/output paths, built-in ghost terms
+2. **Core logic** — main functions that implement the stage (e.g., `find_mentions()` in ghost_hunt, `fetch_categories()` in dispersal)
+3. **I/O handling** — JSON/JSONL read/write, error handling
+4. **CLI entry point** (bottom) — `if __name__ == "__main__"` block with `argparse` for command-line arguments
+
+Each script runs independently and can be imported for testing. They are designed to be idempotent: re-running a stage will recompute only that stage using the latest code, not rescan cached inputs from previous runs.
+
+## Verifying Your Setup
+
+After installing dependencies with `uv sync`, run these checks:
+
+```bash
+# 1. Check Python version
+python --version  # Should be 3.11+
+
+# 2. Verify dependencies
+uv pip list | grep -E "fasthtml|uvicorn"
+
+# 3. Check corpus file exists
+ls -lh data/wwi_extended.jsonl  # Should be ~122 MB
+
+# 4. Quick test: run ghost hunt on a small subset (or with custom terms)
+uv run python analysis/ghost_hunt.py --terms "Lenin"
+
+# 5. Quick test: start the web app (Ctrl+C to exit)
+uv run uvicorn app:app --port 8000
+# Then open http://localhost:8000 and test a search
+```
+
+If any of these fail, refer to the "Troubleshooting" section below.
+
 ## Platform & Environment Notes
 
 **macOS/Linux**: All scripts run natively. The shell scripts use `bash` syntax.
@@ -126,12 +169,29 @@ The parent project's `uv` environment includes these. If working standalone, `uv
 
 To regenerate the analysis outputs:
 
-### Setup
+### Setup & Verification
 
 The corpus is self-contained in `./data/`. All scripts run via `uv`:
 
+**Before running analysis, verify your setup:**
 ```bash
-# Run any analysis script
+# Check dependencies are installed
+uv sync
+
+# Verify corpus file exists (required)
+ls -lh data/wwi_extended.jsonl  # Must be ~122 MB
+
+# Verify ghost mentions are loaded (optional, for web app)
+ls -lh output/ghost_mentions.jsonl  # Will exist after first ghost hunt run
+```
+
+If the corpus file is missing, create a symlink from the parent project:
+```bash
+cd data/ && ln -s ../../../data/wwi_extended.jsonl . && cd ..
+```
+
+Then run any analysis script:
+```bash
 uv run python analysis/ghost_hunt.py
 ```
 
@@ -147,23 +207,27 @@ Reverse-search: which corpus articles mention each officially-empty category ter
 
 **Default behavior** (no arguments):
 ```bash
+# When running from this project directory:
+uv run python analysis/ghost_hunt.py
+
+# Or with explicit project reference from parent:
 uv run --project ../../ python analysis/ghost_hunt.py
 ```
-Uses default corpus (`../../data/wwi_extended.jsonl`) and built-in ghost terms.
+Uses default corpus (`../../data/wwi_extended.jsonl`) and built-in ghost terms. The `--project ../../` flag is only needed if you're running from the parent directory.
 
 **Custom corpus:**
 ```bash
-uv run --project ../../ python analysis/ghost_hunt.py --corpus /path/to/corpus.jsonl
+uv run python analysis/ghost_hunt.py --corpus /path/to/corpus.jsonl
 ```
 
 **Custom output directory:**
 ```bash
-uv run --project ../../ python analysis/ghost_hunt.py --output-dir /path/to/output
+uv run python analysis/ghost_hunt.py --output-dir /path/to/output
 ```
 
 **Custom ghost terms** (quote multi-word terms):
 ```bash
-uv run --project ../../ python analysis/ghost_hunt.py --terms Persia Sazonov "July Crisis" Kurdistan
+uv run python analysis/ghost_hunt.py --terms Persia Sazonov "July Crisis" Kurdistan
 ```
 
 **Input corpus schema**: Accepts JSONL with either `wikitext` or `text` field. Must include `pageid` and `title`:
@@ -210,15 +274,15 @@ Positional inverted index for fast lookup and semantic neighbourhood discovery. 
 
 ```bash
 # Build index (run once, ~30s for 3,230 articles)
-uv run --project ../../ python analysis/corpus_index.py build --corpus ../../data/wwi_extended.jsonl
+uv run python analysis/corpus_index.py build --corpus data/wwi_extended.jsonl
 
 # Direct lookup — which articles mention a term?
-uv run --project ../../ python analysis/corpus_index.py query Sazonov
-uv run --project ../../ python analysis/corpus_index.py query "July Crisis"
+uv run python analysis/corpus_index.py query Sazonov
+uv run python analysis/corpus_index.py query "July Crisis"
 
 # Proximity — what terms cluster within N words of this term?
-uv run --project ../../ python analysis/corpus_index.py query Sazonov --radius 50
-uv run --project ../../ python analysis/corpus_index.py query Persia --radius 30 --top 40
+uv run python analysis/corpus_index.py query Sazonov --radius 50
+uv run python analysis/corpus_index.py query Persia --radius 30 --top 40
 ```
 
 Index persists to `output/corpus_index.pkl`. Auto-builds on first query if missing.
@@ -269,6 +333,30 @@ The script includes a reconciliation step at the end that compares actual result
 - `Revolution`: 850 articles, 4,364 mentions — most pervasive ghost
 - `Persia`: 190 articles, 939 mentions — structurally invisible despite being a real WWI theater
 - 94% of corpus articles appear in exactly one of the 88 searched categories — near-total absence of structural overlap
+
+## Project Structure
+
+```
+.
+├── app.py                      # FastHTML web app (interactive search interface)
+├── pyproject.toml              # Project metadata and dependencies
+├── analysis/
+│   ├── ghost_hunt.py          # Stage 1: Find mentions of ghost terms in corpus
+│   ├── dispersal_map.py        # Stage 2: Fetch real categories for ghost-term articles
+│   ├── collision.py            # Stage 3: Find co-occurrence patterns
+│   ├── corpus_index.py         # Utility: Build positional inverted index
+│   └── pipeline.sh             # Orchestrate all three stages + validation
+├── data/
+│   ├── wwi_extended.jsonl     # Input corpus (3,230 articles, ~122 MB)
+│   └── 88_categories.json      # Reference: official 88-category map
+└── output/ (gitignored)
+    ├── ghost_mentions.jsonl    # Output of stage 1: all term mentions with positions
+    ├── ghost_summary.json      # Output of stage 1: aggregated counts per term
+    ├── dispersal.json          # Output of stage 2: category scatter analysis
+    ├── collision.json          # Output of stage 3: co-occurrence matrix
+    ├── category_cache.json     # Stage 2: Wikipedia API cache (resumable)
+    └── corpus_index.pkl        # Utility: pickled inverted index
+```
 
 ## Data Files
 
@@ -324,7 +412,6 @@ Ghost hunt accepts corpus with either `wikitext` or `text` field. This allows wo
 
 ### Run the Full Pipeline
 ```bash
-cd ignore/wikipedia-institutional-fetishism
 bash analysis/pipeline.sh
 ```
 
@@ -336,19 +423,19 @@ bash analysis/pipeline.sh /path/to/my_corpus.jsonl
 ### Run a Single Stage
 ```bash
 # Just ghost hunt (fast, ~5s for 3,230 articles)
-uv run --project ../../ python analysis/ghost_hunt.py
+uv run python analysis/ghost_hunt.py
 
 # Just dispersal (calls Wikipedia API, respects cache)
-uv run --project ../../ python analysis/dispersal_map.py
+uv run python analysis/dispersal_map.py
 
 # Just collision (fast)
-uv run --project ../../ python analysis/collision.py
+uv run python analysis/collision.py
 ```
 
 ### Resume Interrupted Dispersal (Stage 2)
 If `dispersal_map.py` fails midway through API calls, the cache is preserved. Just re-run:
 ```bash
-uv run --project ../../ python analysis/dispersal_map.py
+uv run python analysis/dispersal_map.py
 ```
 It will skip already-cached articles and continue from where it left off.
 
@@ -361,45 +448,45 @@ bash analysis/pipeline.sh
 Or selectively clear one stage:
 ```bash
 rm output/ghost_mentions.jsonl output/ghost_summary.json
-uv run --project ../../ python analysis/ghost_hunt.py  # Re-runs stage 1 only
+uv run python analysis/ghost_hunt.py  # Re-runs stage 1 only
 ```
 
 To completely reset dispersal caching:
 ```bash
 rm output/category_cache.json output/dispersal.json
-uv run --project ../../ python analysis/dispersal_map.py
+uv run python analysis/dispersal_map.py
 ```
 
 ### Query the Corpus Index
 ```bash
 # Build index if missing (auto-builds on first query)
-uv run --project ../../ python analysis/corpus_index.py build --corpus ../../data/wwi_extended.jsonl
+uv run python analysis/corpus_index.py build --corpus data/wwi_extended.jsonl
 
 # Direct lookup (which articles mention a term?)
-uv run --project ../../ python analysis/corpus_index.py query Sazonov
-uv run --project ../../ python analysis/corpus_index.py query "July Crisis"
+uv run python analysis/corpus_index.py query Sazonov
+uv run python analysis/corpus_index.py query "July Crisis"
 
 # Proximity search (what terms cluster near this term?)
-uv run --project ../../ python analysis/corpus_index.py query Sazonov --radius 50
-uv run --project ../../ python analysis/corpus_index.py query Sazonov --radius 50 --top 40
+uv run python analysis/corpus_index.py query Sazonov --radius 50
+uv run python analysis/corpus_index.py query Sazonov --radius 50 --top 40
 ```
 
 ### Custom Ghost Terms
 Edit the `GHOST_TERMS` list in `analysis/ghost_hunt.py`, then re-run:
 ```bash
-uv run --project ../../ python analysis/ghost_hunt.py
+uv run python analysis/ghost_hunt.py
 ```
 
 Or pass via CLI (temporary override):
 ```bash
-uv run --project ../../ python analysis/ghost_hunt.py \
+uv run python analysis/ghost_hunt.py \
     --terms "Your Term" "Another Term" "Multi-word Term"
 ```
 
 ### Change Output Directory
 By default, all outputs go to `output/`. Override with `--output-dir`:
 ```bash
-uv run --project ../../ python analysis/ghost_hunt.py --output-dir /tmp/results
+uv run python analysis/ghost_hunt.py --output-dir /tmp/results
 ```
 
 ## Troubleshooting
@@ -407,22 +494,25 @@ uv run --project ../../ python analysis/ghost_hunt.py --output-dir /tmp/results
 ### Dispersal Run Hangs or Fails
 The Wikipedia API has rate limits. If `dispersal_map.py` fails mid-run:
 1. Wait a minute (API backoff)
-2. Re-run: `uv run --project ../../ python analysis/dispersal_map.py`
+2. Re-run: `uv run python analysis/dispersal_map.py`
 3. It will resume from the cache (`output/category_cache.json`)
 
 If it fails repeatedly, check `output/category_cache.json` exists and is readable. If corrupted, delete it:
 ```bash
 rm output/category_cache.json
-uv run --project ../../ python analysis/dispersal_map.py  # Re-fetches from scratch
+uv run python analysis/dispersal_map.py  # Re-fetches from scratch
 ```
 
 ### Corpus File Not Found
-All scripts default to `../../data/wwi_extended.jsonl` (relative to the project root). If it's elsewhere:
+All scripts default to `data/wwi_extended.jsonl` (in this project directory). If it's elsewhere:
 ```bash
-uv run --project ../../ python analysis/ghost_hunt.py --corpus /path/to/corpus.jsonl
+uv run python analysis/ghost_hunt.py --corpus /path/to/corpus.jsonl
 ```
 
-Check the parent project's fetch pipeline has run: `git lfs pull` to ensure `.jsonl` files are downloaded.
+Check the file exists: `ls -lh data/wwi_extended.jsonl` (should be ~122 MB). If missing and the parent project has it, create a symlink:
+```bash
+cd data/ && ln -s ../../../data/wwi_extended.jsonl . && cd ..
+```
 
 ### Index Build Takes Forever
 `corpus_index.py build` tokenizes 3,230 articles and builds a postings list (~30 seconds on typical hardware). This happens once; subsequent queries are instant.
@@ -442,13 +532,13 @@ If only `category_cache.json` exists but no `dispersal.json`, the API fetch comp
 
 ### Ghost Hunt Finds Zero Mentions
 Check:
-1. Corpus file exists: `ls -lh ../../data/wwi_extended.jsonl`
+1. Corpus file exists and is readable: `ls -lh data/wwi_extended.jsonl` (should be ~122 MB)
 2. Ghost terms match actual corpus text (case-insensitive search, but exact substring matching)
-3. Corpus has `wikitext` or `text` field: `head -1 ../../data/wwi_extended.jsonl | jq keys`
+3. Corpus has `wikitext` or `text` field: `head -1 data/wwi_extended.jsonl | jq keys`
 
 Try with a built-in term first:
 ```bash
-uv run --project ../../ python analysis/ghost_hunt.py --terms "Lenin"
+uv run python analysis/ghost_hunt.py --terms "Lenin"
 ```
 
 ### Pipeline Validation Shows Discrepancies
